@@ -30,17 +30,13 @@ require() {
 
 
 main() {
-	local default_dist_dir="$(here)/dist"
-
-	local src_dir="$(here)"
-	local dist_dir="$(here)/dist"
-
-	dist_dir="${OUTPUT_DIR:$dist_dir}"
-
 	require "ssh"
 	require "autossh"
 	require "sed"
 	require "cat"
+
+	local src_dir="$(here)"
+	local dist_dir="$(here)/dist"
 
 	local tunnel_bin_src="$src_dir/tunnel"
 	local tunnel_bin_out="$dist_dir/tunnel"
