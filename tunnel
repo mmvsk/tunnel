@@ -1,0 +1,243 @@
+#!/bin/bash
+
+# defaults
+
+DEFAULT_REMOTE_SSH="__default_remote_ssh"
+DEFAULT_LOCAL_HOST="__default_tunnel_local_host"
+
+
+# parameters
+
+REMOTE_SSH="${TUNNEL_REMOTE_SSH-$DEFAULT_REMOTE_SSH}"
+LOCAL_HOST="${TUNNEL_LOCAL_HOST-$DEFAULT_LOCAL_HOST}"
+SSH_OPTIONS=(
+	-o ExitOnForwardFailure=yes
+)
+
+
+# script config
+
+set -euo pipefail
+# set -e -> exit if any command has a non-zero exit status
+# set -u -> reference to any undefined variable is an error
+# set -x -> print all executed commands to the terminal
+# set -o pipefail -> prevents errors in a pipeline from being masked
+
+
+throw() {
+	if [[ -n "${1-}" ]]; then
+		echo -e "error: ${1-}" >&2
+
+	else
+		while read line; do
+			echo "$line" >&2
+		done
+	fi
+
+	exit 1
+}
+
+
+warning() {
+	echo -e "${1-}" >&2
+}
+
+
+info() {
+	echo -e "${1-}"
+}
+
+
+usage() {
+	echo "usage: % {<command>} [<...args>]"
+	echo
+	echo "    commands:"
+	echo "        % make <remote_port> <local_port> [--kill]"
+	echo "            -- create a tunnel from remote port to local port"
+	echo "            -- use \`--kill\` to kill remote process and retry if there is a failure"
+	echo
+	echo "        % kill <remote_port>"
+	echo "            -- kill remote process listening to the given port"
+	echo
+	echo "        % help"
+	echo "          -- print this help"
+	echo
+	echo "    environment:"
+	echo "        TUNNEL_REMOTE_SSH"
+	echo "        TUNNEL_LOCAL_HOST"
+	echo
+}
+
+
+about() {
+	echo "tunnel: create a tunnel from a remote port to a local port"
+	echo
+	usage
+}
+
+
+here() {
+	dirname "$(readlink -f "$0")"
+}
+
+
+validate_port() {
+	local port="${1-}"
+	local name="${2-"port number"}"
+
+	if [[ ! $port =~ ^[1-9][0-9]{0,4}$ ]]; then
+		throw "invalid ${name}: ${port}"
+	fi
+}
+
+
+validate_bool() {
+	local bool="${1-}"
+	local name="${2-"boolean"}"
+
+	if [[ ! $bool =~ ^(true|false)$ ]]; then
+		throw "invalid ${name}: ${bool}"
+	fi
+}
+
+
+tunnel_kill() {
+	local remote_port="${1-8100}"
+
+	validate_port "$remote_port" "remote port number"
+
+	info "trying to kill ${REMOTE_SSH}:${remote_port}"
+	ssh "$REMOTE_SSH" fuser -k -n tcp "$remote_port" || true
+}
+
+
+tunnel_bind() {
+	local remote_port="${1-8100}"
+	local local_port="${2-3000}"
+
+	validate_port "$remote_port" "remote port number"
+	validate_port "$local_port" "local port number"
+
+	autossh -M0 "${SSH_OPTIONS[@]}" \
+		-NTR "${remote_port}:${LOCAL_HOST}:${local_port}" \
+		"$REMOTE_SSH" \
+		2>&1 \
+	| grep -E '^Error: remote port forwarding failed for listen port' \
+	| wc -l
+}
+
+
+tunnel_create() {
+	local remote_port="${1-}"
+	local local_port="${2-}"
+
+	# internally defined
+	local kill_on_failure="${3-}"
+
+	# internal usage only (will be set to true when failed)
+	local kill_now="${4-false}"
+
+	# use-provided
+	validate_port "$remote_port" "remote port number"
+	validate_port "$local_port" "local port number"
+
+	# internal
+	validate_bool "$kill_on_failure" "argument for kill_if_failed"
+	validate_bool "$kill_now" "argument for kill_now"
+
+	if $kill_now; then
+		if ! $kill_on_failure; then
+			throw "internal error: kill_now can only be true when kill_on_failure is true"
+		fi
+
+		tunnel_kill "$remote_port"
+	fi
+
+	info "starting tunnel ${REMOTE_SSH}:${remote_port} -> ${LOCAL_HOST}:${local_port}"
+
+	local result="$( \
+		tunnel_bind "$remote_port" "$local_port" \
+	)"
+
+	local port_unavailable="$( \
+		[[ $result -ge 1 ]] \
+			&& echo "true" \
+			|| echo "false" \
+	)"
+
+	if $port_unavailable; then
+		if $kill_on_failure; then
+			if ! $kill_now; then
+				warning "failed, will try to kill remote process listening to ${REMOTE_SSH}:${remote_port}"
+				exec tunnel_create "$remote_port" "$local_port" "$kill_on_failure" true
+			fi
+		fi
+
+		throw "failed to connect to remote port ${REMOTE_SSH}:${remote_port}"
+	fi
+}
+
+
+main() {
+	local command_name="${1-}"
+	local command_args=("${@:2}")
+
+	case "$command_name" in
+
+		"create")
+			echo "${command_args[@]:2}"
+			exit 0
+
+			local remote_port=""
+			local local_port=""
+			local kill_on_failure=false
+
+			for a in "${command_args[@]}"; do
+				if [[ $a == "--kill" ]]; then
+					kill_on_failure=true
+
+				elif [[ -z $remote_port ]]; then
+					remote_port="$a"
+
+				elif [[ -z $local_port ]]; then
+					local_port="$a"
+
+				else
+					throw "invalid argument: ${a}"
+				fi
+			done
+
+			if [[ -z $remote_port ]]; then
+				throw "missing argument for <remote_port>"
+			fi
+
+			if [[ -z $local_port ]]; then
+				throw "missing argument for <local_port>"
+			fi
+
+			tunnel_create "$remote_port" "$local_port" "$kill_on_failure"
+			;;
+
+		"kill")
+			local remote_port="${command_args[1]-}"
+
+			if [[ -z $remote_port ]]; then
+				throw "missing argument for <remote_port>"
+			fi
+
+			tunnel_kill "$remote_port"
+			;;
+
+		"help")
+			about
+			;;
+
+		*)
+			usage | throw
+			;;
+
+	esac
+}
+
+
+main "$@"

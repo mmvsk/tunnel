@@ -1,0 +1,70 @@
+#!/bin/bash
+
+set -euo pipefail
+# set -e -> exit if any command has a non-zero exit status
+# set -u -> reference to any undefined variable is an error
+# set -x -> print all executed commands to the terminal
+# set -o pipefail -> prevents errors in a pipeline from being masked
+
+
+throw() {
+	echo -e "error: ${1-}" >&2
+	exit 1
+}
+
+
+here() {
+	dirname "$(readlink -f "$0")"
+}
+
+
+main() {
+	local tunnel_bin_src="$(here)/tunnel"
+	local tunnel_bin_out="$(here)/dist/tunnel"
+	local tunnel_compdef_src="$(here)/tunnel.compdef"
+	local tunnel_compdef_out="$(here)/dist/tunnel.compdef"
+
+	local default_default_remote_ssh="$(id -u -n)@localhost"
+	local default_default_tunnel_local_host="localhost"
+	local default_default_tunnel_local_ports="3000"
+	local default_default_tunnel_remote_ports="8080"
+
+	local default_remote_ssh=""
+	local default_tunnel_local_host=""
+	local default_tunnel_local_ports=""
+	local default_tunnel_remote_ports=""
+
+	read -p "default remote ssh ($default_default_remote_ssh): " default_remote_ssh
+	read -p "default tunnel local host ($default_default_tunnel_local_host): " default_tunnel_local_host
+	read -p "default tunnel local port(s) ($default_default_tunnel_local_ports): " default_tunnel_local_ports
+	read -p "default tunnel remote port(s) ($default_default_tunnel_remote_ports): " default_tunnel_remote_ports
+
+	if [[ -z $default_remote_ssh ]]; then
+		default_remote_ssh="$default_default_remote_ssh"
+	fi
+
+	if [[ -z $default_tunnel_local_host ]]; then
+		default_tunnel_local_host="$default_default_tunnel_local_host"
+	fi
+
+	if [[ -z $default_tunnel_local_ports ]]; then
+		default_tunnel_local_ports="$default_default_tunnel_local_ports"
+	fi
+
+	if [[ -z $default_tunnel_remote_ports ]]; then
+		default_tunnel_remote_ports="$default_default_tunnel_remote_ports"
+	fi
+
+	cat "$tunnel_bin_out" \
+		| sed "s/__default_remote_ssh/$default_remote_ssh/g" \
+		| sed "s/__default_tunnel_local_host/$default_local_host/g" \
+		> "$tunnel_bin_out"
+
+	cat "$tunnel_compdef_out" \
+		| sed "s/__default_tunnel_local_ports/$default_tunnel_local_ports/g" \
+		| sed "s/__default_tunnel_remote_ports/$default_tunnel_remote_ports/g" \
+		> "$tunnel_compdef_out"
+}
+
+
+main "$@"

@@ -1,0 +1,63 @@
+#compdef tunnel
+
+_has_option() {
+	local option="${1-}"
+	local words=("${@:2}")
+
+	for word in "${words[@]}"; do
+		if [[ $word == $option ]]; then
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+_tunnel() {
+	_arguments '1: :(create kill help)' '2: :->first_command_param' '3: :->second_command_param' '4: :->third_command_param'
+
+	local remote_ports=(__default_tunnel_remote_ports) # only the first ons is enough: better autocomplete
+	local local_ports=(_default_tunnel_local_ports) # only the first one is enough: better autocomplete
+	local kill_option="--kill"
+
+	local command_name="${words[2]}"
+	local command_args=("${words[@]:2}")
+
+	case "$state" in
+		first_command_param)
+			case "$command_name" in
+				create)
+					compadd -- "${remote_ports[@]}" "$kill_option"
+					;;
+				kill)
+					compadd -- "${remote_ports[@]}"
+					;;
+			esac
+			;;
+
+		second_command_param)
+			if [[ $command_name == "create" ]]; then
+				if _has_option "$kill_option" "${command_args[@]}"; then
+					compadd -- "${remote_ports[@]}"
+				else
+					compadd -- "${local_ports[@]}" "$kill_option"
+				fi
+			else
+				compadd -- bouh
+			fi
+			;;
+
+		third_command_param)
+			if [[ $command_name == "create" ]]; then
+				if _has_option "$kill_option" "${command_args[@]}"; then
+					compadd -- "${local_ports[@]}"
+				else
+					compadd -- "$kill_option"
+				fi
+			fi
+			;;
+
+	esac
+}
+
+compdef _tunnel tunnel
