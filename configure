@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+
+DEFAULT_REMOTE_SSH="$(id -u -n)@localhost"
+DEFAULT_TUNNEL_LOCAL_HOST="localhost"
+DEFAULT_TUNNEL_LOCAL_PORT="3000"
+DEFAULT_TUNNEL_REMOTE_PORT="8080"
+
 
 set -euo pipefail
 # set -e -> exit if any command has a non-zero exit status
@@ -19,40 +26,46 @@ here() {
 
 
 main() {
-	local tunnel_bin_src="$(here)/tunnel"
-	local tunnel_bin_out="$(here)/dist/tunnel"
-	local tunnel_compdef_src="$(here)/tunnel.compdef"
-	local tunnel_compdef_out="$(here)/dist/tunnel.compdef"
+	local default_dist_dir="$(here)/dist"
 
-	local default_default_remote_ssh="$(id -u -n)@localhost"
-	local default_default_tunnel_local_host="localhost"
-	local default_default_tunnel_local_ports="3000"
-	local default_default_tunnel_remote_ports="8080"
+	local src_dir="$(here)"
+	local dist_dir="$(here)/dist"
+
+	dist_dir="${OUTPUT_DIR:$dist_dir}"
+
+	local tunnel_bin_src="$src_dir/tunnel"
+	local tunnel_bin_out="$dist_dir/tunnel"
+	local tunnel_compdef_src="$src_dir/tunnel.compdef"
+	local tunnel_compdef_out="$dist_dir/tunnel.compdef"
 
 	local default_remote_ssh=""
 	local default_tunnel_local_host=""
 	local default_tunnel_local_ports=""
 	local default_tunnel_remote_ports=""
 
-	read -p "default remote ssh ($default_default_remote_ssh): " default_remote_ssh
-	read -p "default tunnel local host ($default_default_tunnel_local_host): " default_tunnel_local_host
-	read -p "default tunnel local port(s) ($default_default_tunnel_local_ports): " default_tunnel_local_ports
-	read -p "default tunnel remote port(s) ($default_default_tunnel_remote_ports): " default_tunnel_remote_ports
+	read -p "default remote ssh ($DEFAULT_REMOTE_SSH): " default_remote_ssh
+	read -p "default tunnel local host ($DEFAULT_TUNNEL_LOCAL_HOST): " default_tunnel_local_host
+	read -p "default tunnel local port(s) ($DEFAULT_TUNNEL_LOCAL_PORT): " default_tunnel_local_ports
+	read -p "default tunnel remote port(s) ($DEFAULT_TUNNEL_REMOTE_PORT): " default_tunnel_remote_ports
 
 	if [[ -z $default_remote_ssh ]]; then
-		default_remote_ssh="$default_default_remote_ssh"
+		default_remote_ssh="$DEFAULT_REMOTE_SSH"
 	fi
 
 	if [[ -z $default_tunnel_local_host ]]; then
-		default_tunnel_local_host="$default_default_tunnel_local_host"
+		default_tunnel_local_host="$DEFAULT_TUNNEL_LOCAL_HOST"
 	fi
 
 	if [[ -z $default_tunnel_local_ports ]]; then
-		default_tunnel_local_ports="$default_default_tunnel_local_ports"
+		default_tunnel_local_ports="$DEFAULT_TUNNEL_LOCAL_PORT"
 	fi
 
 	if [[ -z $default_tunnel_remote_ports ]]; then
-		default_tunnel_remote_ports="$default_default_tunnel_remote_ports"
+		default_tunnel_remote_ports="$DEFAULT_TUNNEL_REMOTE_PORT"
+	fi
+
+	if [[ ! -d $dist_dir ]]; then
+		mkdir -p "$dist_dir"
 	fi
 
 	cat "$tunnel_bin_src" \
