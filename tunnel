@@ -186,9 +186,6 @@ main() {
 	case "$command_name" in
 
 		"create")
-			echo "${command_args[@]:2}"
-			exit 0
-
 			local remote_port=""
 			local local_port=""
 			local kill_on_failure=false
