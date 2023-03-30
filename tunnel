@@ -23,13 +23,14 @@ set -euo pipefail
 # set -x -> print all executed commands to the terminal
 # set -o pipefail -> prevents errors in a pipeline from being masked
 
+IFS=""
 
 throw() {
 	if [[ -n "${1-}" ]]; then
 		echo -e "error: ${1-}" >&2
 
 	else
-		while read line; do
+		while IFS="" read -r line; do
 			echo "$line" >&2
 		done
 	fi
