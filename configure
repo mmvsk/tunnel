@@ -55,15 +55,17 @@ main() {
 		default_tunnel_remote_ports="$default_default_tunnel_remote_ports"
 	fi
 
-	cat "$tunnel_bin_out" \
+	cat "$tunnel_bin_src" \
 		| sed "s/__default_remote_ssh/$default_remote_ssh/g" \
-		| sed "s/__default_tunnel_local_host/$default_local_host/g" \
+		| sed "s/__default_tunnel_local_host/$default_tunnel_local_host/g" \
 		> "$tunnel_bin_out"
 
-	cat "$tunnel_compdef_out" \
+	cat "$tunnel_compdef_src" \
 		| sed "s/__default_tunnel_local_ports/$default_tunnel_local_ports/g" \
 		| sed "s/__default_tunnel_remote_ports/$default_tunnel_remote_ports/g" \
 		> "$tunnel_compdef_out"
+
+	chmod +x "$tunnel_bin_out"
 }
 
 
