@@ -1,5 +1,5 @@
 #compdef tunnel
-#
+
 
 _has_option() {
 	local option="${1-}"
