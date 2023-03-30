@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# script config
+
+set -euo pipefail
+
+
 # defaults
 
 DEFAULT_REMOTE_SSH="__default_remote_ssh"
@@ -15,14 +20,7 @@ SSH_OPTIONS=(
 )
 
 
-# script config
-
-set -euo pipefail
-# set -e -> exit if any command has a non-zero exit status
-# set -u -> reference to any undefined variable is an error
-# set -x -> print all executed commands to the terminal
-# set -o pipefail -> prevents errors in a pipeline from being masked
-
+# functions
 
 throw() {
 	if [[ -n "${1-}" ]]; then
@@ -73,11 +71,6 @@ about() {
 	echo "tunnel: create a tunnel from a remote port to a local port"
 	echo
 	usage
-}
-
-
-here() {
-	dirname "$(readlink -f "$0")"
 }
 
 
@@ -137,11 +130,11 @@ tunnel_create() {
 	# internal usage only (will be set to true when failed)
 	local kill_now="${4-false}"
 
-	# use-provided
+	# user-provided
 	validate_port "$remote_port" "remote port number"
 	validate_port "$local_port" "local port number"
 
-	# internal
+	# internally defined
 	validate_bool "$kill_on_failure" "argument for kill_if_failed"
 	validate_bool "$kill_now" "argument for kill_now"
 
@@ -159,13 +152,13 @@ tunnel_create() {
 		tunnel_bind "$remote_port" "$local_port" \
 	)"
 
-	local port_unavailable="$( \
+	local error_port_unavailable="$( \
 		[[ $result -ge 1 ]] \
 			&& echo "true" \
 			|| echo "false" \
 	)"
 
-	if $port_unavailable; then
+	if $error_port_unavailable; then
 		if $kill_on_failure; then
 			if ! $kill_now; then
 				warning "failed, will try to kill remote process listening to ${REMOTE_SSH}:${remote_port}"

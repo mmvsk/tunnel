@@ -1,17 +1,12 @@
 #!/bin/bash
-#
+
+set -euo pipefail
+
 
 DEFAULT_REMOTE_SSH="$(id -u -n)@localhost"
 DEFAULT_TUNNEL_LOCAL_HOST="localhost"
 DEFAULT_TUNNEL_LOCAL_PORT="3000"
 DEFAULT_TUNNEL_REMOTE_PORT="8080"
-
-
-set -euo pipefail
-# set -e -> exit if any command has a non-zero exit status
-# set -u -> reference to any undefined variable is an error
-# set -x -> print all executed commands to the terminal
-# set -o pipefail -> prevents errors in a pipeline from being masked
 
 
 throw() {
@@ -25,6 +20,15 @@ here() {
 }
 
 
+require() {
+	local bin="${1-}"
+
+	if ! which "$bin" >/dev/null 2>/dev/null; then
+		throw "error: required program \`${bin}\` not found"
+	fi
+}
+
+
 main() {
 	local default_dist_dir="$(here)/dist"
 
@@ -32,6 +36,11 @@ main() {
 	local dist_dir="$(here)/dist"
 
 	dist_dir="${OUTPUT_DIR:$dist_dir}"
+
+	require "ssh"
+	require "autossh"
+	require "sed"
+	require "cat"
 
 	local tunnel_bin_src="$src_dir/tunnel"
 	local tunnel_bin_out="$dist_dir/tunnel"
