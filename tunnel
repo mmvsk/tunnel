@@ -23,7 +23,6 @@ set -euo pipefail
 # set -x -> print all executed commands to the terminal
 # set -o pipefail -> prevents errors in a pipeline from being masked
 
-IFS=""
 
 throw() {
 	if [[ -n "${1-}" ]]; then
