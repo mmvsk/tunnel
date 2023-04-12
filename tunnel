@@ -27,9 +27,10 @@ throw() {
 		echo -e "error: ${1-}" >&2
 
 	else
-		while IFS="" read -r line; do
-			echo "$line" >&2
-		done
+		#while IFS="" read -r line; do
+			#echo "$line" >&2
+		#done
+		cat >&2
 	fi
 
 	exit 1
