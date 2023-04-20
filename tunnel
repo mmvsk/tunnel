@@ -51,7 +51,7 @@ usage() {
 	echo "usage: % {<command>} [<...args>]"
 	echo
 	echo "    commands:"
-	echo "        % make <remote_port> <local_port> [--kill]"
+	echo "        % create <remote_port> <local_port> [--kill]"
 	echo "            -- create a tunnel from remote port to local port"
 	echo "            -- use \`--kill\` to kill remote process and retry if there is a failure"
 	echo
@@ -100,7 +100,7 @@ tunnel_kill() {
 
 	validate_port "$remote_port" "remote port number"
 
-	info "trying to kill ${REMOTE_SSH}:${remote_port}"
+	info "killing remote port ${REMOTE_SSH}:${remote_port}"
 	ssh "$REMOTE_SSH" fuser -k -n tcp "$remote_port" || true
 }
 
@@ -210,7 +210,7 @@ main() {
 			;;
 
 		"kill")
-			local remote_port="${command_args[1]-}"
+			local remote_port="${command_args[0]-}"
 
 			if [[ -z $remote_port ]]; then
 				throw "missing argument for <remote_port>"
