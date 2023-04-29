@@ -53,14 +53,14 @@ usage() {
 	echo "usage: % <command> [<...args>]"
 	echo
 	echo "    commands:"
-	echo "        % create <remote_port> <local_port> [--kill]"
+	echo "        create <remote_port> <local_port> [--kill]"
 	echo "            -- create a tunnel from remote port to local port"
 	echo "            -- use \`--kill\` to kill remote process and retry if there is a failure"
 	echo
-	echo "        % kill <remote_port>"
+	echo "        kill <remote_port>"
 	echo "            -- kill remote process listening to the given port"
 	echo
-	echo "        % help"
+	echo "        help"
 	echo "          -- print this help"
 	echo
 	echo "    environment:"
