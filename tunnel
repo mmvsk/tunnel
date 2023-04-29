@@ -8,12 +8,14 @@ set -euo pipefail
 # defaults
 
 DEFAULT_REMOTE_SSH="__default_remote_ssh"
+DEFAULT_REMOTE_SSH_FUSER="__default_remote_ssh"
 DEFAULT_LOCAL_HOST="__default_tunnel_local_host"
 
 
 # parameters
 
 REMOTE_SSH="${TUNNEL_REMOTE_SSH-$DEFAULT_REMOTE_SSH}"
+REMOTE_SSH_FUSER="${TUNNEL_REMOTE_SSH_FUSER-$DEFAULT_REMOTE_SSH_FUSER}"
 LOCAL_HOST="${TUNNEL_LOCAL_HOST-$DEFAULT_LOCAL_HOST}"
 SSH_OPTIONS=(
 	-o ExitOnForwardFailure=yes
@@ -48,7 +50,7 @@ info() {
 
 
 usage() {
-	echo "usage: % {<command>} [<...args>]"
+	echo "usage: % <command> [<...args>]"
 	echo
 	echo "    commands:"
 	echo "        % create <remote_port> <local_port> [--kill]"
@@ -101,7 +103,7 @@ tunnel_kill() {
 	validate_port "$remote_port" "remote port number"
 
 	info "killing remote port ${REMOTE_SSH}:${remote_port}"
-	ssh "$REMOTE_SSH" fuser -k -n tcp "$remote_port" || true
+	ssh "$REMOTE_SSH_FUSER" fuser -k -n tcp "$remote_port" || true
 }
 
 
@@ -163,7 +165,8 @@ tunnel_create() {
 		if $kill_on_failure; then
 			if ! $kill_now; then
 				warning "failed, will try to kill remote process listening to ${REMOTE_SSH}:${remote_port}"
-				exec tunnel_create "$remote_port" "$local_port" "$kill_on_failure" true
+				tunnel_create "$remote_port" "$local_port" "$kill_on_failure" true
+				exit $?
 			fi
 		fi
 
