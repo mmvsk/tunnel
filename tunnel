@@ -103,7 +103,17 @@ tunnel_kill() {
 	validate_port "$remote_port" "remote port number"
 
 	info "killing remote port ${REMOTE_SSH}:${remote_port}"
-	ssh "$REMOTE_SSH_FUSER" fuser -k -n tcp "$remote_port" || true
+
+	local output="$(ssh "$REMOTE_SSH_FUSER" fuser -k -n tcp "$remote_port" || true)"
+	local killed="$(echo "$output" | perl -pe 's:^\s*(\d+)/.*$:$1:g')"
+
+	echo "$killed" | while IFS="" read -r pid; do
+		echo "    * killed ${REMOTE_SSH} process ${pid}"
+	done
+
+	if [[ -n $killed ]]; then
+		echo
+	fi
 }
 
 
@@ -164,7 +174,7 @@ tunnel_create() {
 	if $error_port_unavailable; then
 		if $kill_on_failure; then
 			if ! $kill_now; then
-				warning "failed, will try to kill remote process listening to ${REMOTE_SSH}:${remote_port}"
+				warning "failed, will retry with killing the remote process first"
 				tunnel_create "$remote_port" "$local_port" "$kill_on_failure" true
 				exit $?
 			fi
